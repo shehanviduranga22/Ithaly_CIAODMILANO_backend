@@ -216,6 +216,17 @@
 .collection-cover { height: 215px; }
 .collection-facts > div { padding: 19px 0; }
 .collection-facts > div + div { border-left: 1px solid var(--border); padding-left: 22px; }
+.pieces-loading-mark { position: relative; display: grid; width: 58px; height: 58px; place-items: center; }
+.pieces-loading-orbit { position: absolute; border: 1px solid var(--border); border-radius: 50%; }
+.pieces-loading-orbit-outer { inset: 2px; border-top-color: var(--primary); animation: atelier-orbit 1.8s linear infinite; }
+.pieces-loading-orbit-inner { inset: 10px; border-right-color: var(--primary); opacity: .55; animation: atelier-orbit 2.6s linear infinite reverse; }
+.pieces-loading-sparkle { width: 16px; height: 16px; color: var(--primary); animation: atelier-glint 1.6s ease-in-out infinite; }
+.pieces-loading-label { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; animation: atelier-label 1.8s ease-in-out infinite; }
+.pieces-loading-dots { display: inline-block; width: 1.5em; overflow: hidden; white-space: nowrap; text-align: left; animation: atelier-dots 1.2s steps(4, end) infinite; }
+@keyframes atelier-orbit { to { transform: rotate(360deg); } }
+@keyframes atelier-glint { 0%, 100% { opacity: .45; transform: scale(.85) rotate(-12deg); } 50% { opacity: 1; transform: scale(1.15) rotate(12deg); } }
+@keyframes atelier-label { 0%, 100% { opacity: .58; } 50% { opacity: 1; } }
+@keyframes atelier-dots { 0% { width: 0; } 100% { width: 1.5em; } }
 .pieces-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 26px 20px; }
 .piece-card { min-width: 0; }
 .piece-visual { aspect-ratio: 4 / 3; background: var(--muted); }

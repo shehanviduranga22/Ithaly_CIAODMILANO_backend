@@ -1,0 +1,14 @@
+{
+  "name": "ciao-d-milano-api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js",
+    "server": "node server.js",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "dotenv": "^18.0.7",
+    "mongodb": "^7.7.0"
+  }
+}
