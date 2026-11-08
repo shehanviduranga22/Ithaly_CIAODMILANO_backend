@@ -86,11 +86,6 @@ function OrdersPage() {
             order.accountEmail ||
             order.contactInformation?.email ||
             "—";
-          const item =
-            order.purchasedItems
-              ?.map((product) => product.name)
-              .filter(Boolean)
-              .join(", ") || "—";
           const date =
             order.createdAt && !Number.isNaN(Date.parse(order.createdAt))
               ? new Date(order.createdAt).toISOString().slice(0, 10)
@@ -98,7 +93,7 @@ function OrdersPage() {
           return [
             <span className="text-muted-foreground">{order.id}</span>,
             customer,
-            <span className="font-display text-base">{item}</span>,
+            <PurchasedItemsCell items={order.purchasedItems} />,
             eur(order.totalAmount ?? 0),
             <span
               className={`order-status ${status === "Delivered" ? "status-complete" : status === "Cancelled" ? "status-cancelled" : "status-pending"}`}
@@ -201,6 +196,56 @@ function OrdersPage() {
         )}
       </Dialog>
     </Shell>
+  );
+}
+
+function PurchasedItemsCell({ items }: { items: OrderRecord["purchasedItems"] }) {
+  if (!items?.length) return <span className="text-muted-foreground">—</span>;
+
+  return (
+    <ul className="min-w-[180px] space-y-2">
+      {items.map((item, index) => {
+        const name = [item.name, item.productName, item.title].find(
+          (value): value is string => typeof value === "string" && value.length > 0,
+        );
+        const quantity = item.quantity;
+        const details = Object.entries(item).filter(
+          ([key, value]) =>
+            ![
+              "name",
+              "productName",
+              "title",
+              "quantity",
+              "id",
+              "_id",
+              "productId",
+              "image",
+              "imageUrl",
+              "createdAt",
+            ].includes(key) &&
+            (typeof value === "string" ||
+              typeof value === "number" ||
+              typeof value === "boolean") &&
+            value !== "",
+        );
+
+        return (
+          <li key={`${name ?? "item"}-${index}`} className="border-b pb-2 last:border-0 last:pb-0">
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="font-display text-sm">{name || "Item"}</span>
+              {quantity !== undefined && (
+                <span className="shrink-0 text-[10px] text-muted-foreground">× {quantity}</span>
+              )}
+            </div>
+            {details.length > 0 && (
+              <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">
+                {details.map(([key, value]) => `${formatLabel(key)}: ${String(value)}`).join(" · ")}
+              </p>
+            )}
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 

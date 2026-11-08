@@ -6,10 +6,7 @@ import { MongoClient, ObjectId } from "mongodb";
 
 const backendDirectory = dirname(fileURLToPath(import.meta.url));
 dotenv.config({
-  path: [
-    resolve(backendDirectory, ".env"),
-    resolve(backendDirectory, "../frontend/.env"),
-  ],
+  path: resolve(backendDirectory, ".env"),
 });
 
 const PORT = Number(process.env.PORT ?? 3001);
@@ -432,6 +429,108 @@ const server = createServer(async (request, response) => {
       sendJson(response, 500, {
         error:
           "Unable to load records. Check the backend and database connection.",
+      });
+    }
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/dashboard/analytics") {
+    try {
+      const database = await getDatabase();
+      const now = new Date();
+      const firstMonth = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 11, 1),
+      );
+      const nextMonth = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1),
+      );
+      const [itemResults, monthlyOrders] = await Promise.all([
+        Promise.all(
+          Object.entries(COLLECTIONS).map(async ([line, config]) => {
+            const [summary] = await database
+              .collection(config.name)
+              .aggregate([
+                {
+                  $facet: {
+                    inventory: [{ $count: "total" }],
+                    categories: [
+                      { $group: { _id: "$category", count: { $sum: 1 } } },
+                      { $sort: { _id: 1 } },
+                    ],
+                  },
+                },
+              ])
+              .toArray();
+            return {
+              line,
+              total: summary?.inventory[0]?.total ?? 0,
+              categories: (summary?.categories ?? [])
+                .filter(({ _id }) => typeof _id === "string" && _id.length > 0)
+                .map(({ _id, count }) => ({ name: _id, count })),
+            };
+          }),
+        ),
+        database
+          .collection(READ_COLLECTIONS.orders)
+          .aggregate([
+            {
+              $addFields: {
+                recordedDate: {
+                  $convert: {
+                    input: "$createdAt",
+                    to: "date",
+                    onError: null,
+                    onNull: null,
+                  },
+                },
+              },
+            },
+            {
+              $match: {
+                recordedDate: { $gte: firstMonth, $lt: nextMonth },
+              },
+            },
+            {
+              $group: {
+                _id: {
+                  $dateToString: {
+                    format: "%Y-%m",
+                    date: "$recordedDate",
+                    timezone: "UTC",
+                  },
+                },
+                count: { $sum: 1 },
+              },
+            },
+          ])
+          .toArray(),
+      ]);
+      const orderCounts = new Map(
+        monthlyOrders.map(({ _id, count }) => [_id, count]),
+      );
+      const ordersByMonth = Array.from({ length: 12 }, (_, index) => {
+        const month = new Date(
+          Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 11 + index, 1),
+        )
+          .toISOString()
+          .slice(0, 7);
+        return { month, count: orderCounts.get(month) ?? 0 };
+      });
+
+      sendJson(response, 200, {
+        lineCounts: Object.fromEntries(
+          itemResults.map(({ line, total }) => [line, total]),
+        ),
+        categoryCounts: Object.fromEntries(
+          itemResults.map(({ line, categories }) => [line, categories]),
+        ),
+        ordersByMonth,
+      });
+    } catch (error) {
+      console.error("Failed to load dashboard analytics from MongoDB:", error);
+      sendJson(response, 500, {
+        error:
+          "Unable to load dashboard analytics. Check the backend and database connection.",
       });
     }
     return;

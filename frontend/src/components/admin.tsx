@@ -316,6 +316,8 @@ export function AddItemDialog({
   item?: Item;
 }) {
   const cats = CATEGORIES[line];
+  const collectionImage = line === "men" ? s1 : line === "women" ? s2 : s3;
+  const collectionNumber = line === "men" ? "01" : line === "women" ? "02" : "03";
   const [f, setF] = useState<{
     name: string;
     price: string;
@@ -444,147 +446,221 @@ export function AddItemDialog({
         aria-labelledby="add-item-title"
         onClick={(e) => e.stopPropagation()}
         onSubmit={submit}
-        className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto bg-card p-7 sm:p-8"
+        className="atelier-item-form relative max-h-[90vh] w-full max-w-2xl overflow-y-auto bg-card"
       >
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          aria-label="Close dialog"
-          title="Close"
-          className="absolute right-4 top-4"
-          onClick={onClose}
-        >
-          <X />
-        </Button>
-        <p className="eyebrow text-muted-foreground">{editingItem ? "Edit piece" : "New piece"}</p>
-        <h2 id="add-item-title" className="font-display mb-7 mt-2 text-3xl">
-          {editingItem ? `Update ${LINE_LABEL[line]} Item` : `Add ${LINE_LABEL[line]} Item`}
-        </h2>
-        <div className="space-y-5">
-          <div>
-            <span className="eyebrow">Item image</span>
-            <div className="mt-3 flex items-center gap-4">
-              <Button
-                type="button"
-                variant="editorial"
-                onClick={() => fileRef.current?.click()}
-                aria-label="Choose item image"
-                className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden border border-dashed border-border p-0 text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
-              >
-                {image ? (
-                  <img src={image} alt="Item preview" className="h-full w-full object-cover" />
-                ) : (
-                  <ImagePlus size={18} strokeWidth={1.3} />
-                )}
-              </Button>
-              <div className="min-w-0">
-                <p className="text-xs text-muted-foreground">
-                  {image
-                    ? "Image added. Click the frame to replace it."
-                    : "Add a photo of the piece — optional."}
+        <div className="atelier-form-hero">
+          <img src={collectionImage} alt="" className="atelier-form-hero-image" />
+          <div className="atelier-form-hero-shade" />
+          <div className="atelier-form-hero-copy">
+            <p className="eyebrow">
+              {collectionNumber} / CIAO D MILANO · {LINE_LABEL[line]}
+            </p>
+            <h2 id="add-item-title" className="font-display mt-2 text-3xl sm:text-4xl">
+              {editingItem ? "Refine the piece" : "A new arrival"}
+            </h2>
+            <p className="mt-2 text-xs opacity-80">
+              {editingItem
+                ? "Update its details in the collection."
+                : "Give this piece its place in the collection."}
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label="Close dialog"
+            title="Close"
+            className="atelier-form-close"
+            onClick={onClose}
+          >
+            <X />
+          </Button>
+        </div>
+        <div className="atelier-form-body">
+          <section className="atelier-form-section">
+            <div className="atelier-form-section-heading">
+              <span className="atelier-form-step">01</span>
+              <div>
+                <h3 className="font-display text-xl">The piece</h3>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Start with a name and a price.
                 </p>
-                {image && (
+              </div>
+            </div>
+            <div className="atelier-form-fields">
+              <label className="atelier-form-field">
+                <span className="eyebrow">Item name</span>
+                <input
+                  autoFocus
+                  className="field"
+                  value={f.name}
+                  onChange={set("name")}
+                  placeholder="e.g. The Milano blazer"
+                />
+              </label>
+              <label className="atelier-form-field">
+                <span className="eyebrow">
+                  Price <span className="atelier-form-currency">EUR</span>
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  className="field"
+                  value={f.price}
+                  onChange={set("price")}
+                  placeholder="0.00"
+                />
+              </label>
+            </div>
+          </section>
+          <section className="atelier-form-section">
+            <div className="atelier-form-section-heading">
+              <span className="atelier-form-step">02</span>
+              <div>
+                <h3 className="font-display text-xl">The edit</h3>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Choose a category and available sizes.
+                </p>
+              </div>
+            </div>
+            <div className="atelier-form-fields atelier-form-fields-equal">
+              <fieldset className="atelier-form-panel">
+                <legend className="eyebrow">Category</legend>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {cats.map((c) => (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={f.category === c ? "atelier" : "editorial"}
+                      key={c}
+                      aria-pressed={f.category === c}
+                      onClick={() => setF({ ...f, category: c })}
+                    >
+                      {c}
+                    </Button>
+                  ))}
+                </div>
+              </fieldset>
+              <fieldset className="atelier-form-panel">
+                <legend className="eyebrow">Available sizes</legend>
+                <p className="mt-2 text-[10px] text-muted-foreground">Select all that apply.</p>
+                <div className="atelier-size-options">
+                  {sizeOptions.map((size) => (
+                    <label key={size} className="atelier-size-option">
+                      <Checkbox
+                        checked={selectedSizes.includes(size)}
+                        onCheckedChange={(checked) => toggleSize(size, checked === true)}
+                      />
+                      {size}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            </div>
+          </section>
+          <section className="atelier-form-section">
+            <div className="atelier-form-section-heading">
+              <span className="atelier-form-step">03</span>
+              <div>
+                <h3 className="font-display text-xl">The finish</h3>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Add the design story and an optional photograph.
+                </p>
+              </div>
+            </div>
+            <div className="atelier-form-fields atelier-form-finish">
+              <label className="atelier-form-field">
+                <span className="eyebrow">Design notes</span>
+                <textarea
+                  rows={4}
+                  className="field resize-none"
+                  value={f.design}
+                  onChange={set("design")}
+                  placeholder="Describe the fabric, silhouette and finishing details..."
+                />
+              </label>
+              <div className="atelier-image-field">
+                <span className="eyebrow">
+                  Campaign image <span className="atelier-form-currency">OPTIONAL</span>
+                </span>
+                <div className="atelier-image-picker">
                   <Button
                     type="button"
                     variant="editorial"
-                    size="sm"
-                    className="mt-2"
-                    onClick={() => {
-                      setImage("");
-                      setImageChanged(true);
-                    }}
+                    onClick={() => fileRef.current?.click()}
+                    aria-label="Choose item image"
+                    className="atelier-image-button"
                   >
-                    Remove image
+                    {image ? (
+                      <img src={image} alt="Item preview" className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="atelier-image-empty">
+                        <ImagePlus size={20} strokeWidth={1.3} />
+                        <span>Add image</span>
+                      </span>
+                    )}
                   </Button>
-                )}
+                  <div className="min-w-0">
+                    <p className="text-[11px] leading-relaxed text-muted-foreground">
+                      {image
+                        ? "Image ready. Select the frame to replace it."
+                        : "A photograph helps bring the piece to life."}
+                    </p>
+                    {image && (
+                      <Button
+                        type="button"
+                        variant="editorial"
+                        size="sm"
+                        className="mt-2"
+                        onClick={() => {
+                          setImage("");
+                          setImageChanged(true);
+                        }}
+                      >
+                        Remove image
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    pickImage(e.target.files?.[0]);
+                    e.target.value = "";
+                  }}
+                />
               </div>
             </div>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                pickImage(e.target.files?.[0]);
-                e.target.value = "";
-              }}
-            />
-          </div>
-          <label className="block">
-            <span className="eyebrow">Item name</span>
-            <input autoFocus className="field" value={f.name} onChange={set("name")} />
-          </label>
-          <label className="block">
-            <span className="eyebrow">Price (€)</span>
-            <input
-              type="number"
-              min="0"
-              step="any"
-              className="field"
-              value={f.price}
-              onChange={set("price")}
-            />
-          </label>
-          <fieldset>
-            <legend className="eyebrow">Available sizes</legend>
-            <p className="mt-2 text-xs text-muted-foreground">Select all that apply.</p>
-            <div className="mt-3 flex flex-wrap gap-3">
-              {sizeOptions.map((size) => (
-                <label key={size} className="flex cursor-pointer items-center gap-2 text-xs">
-                  <Checkbox
-                    checked={selectedSizes.includes(size)}
-                    onCheckedChange={(checked) => toggleSize(size, checked === true)}
-                  />
-                  {size}
-                </label>
-              ))}
-            </div>
-          </fieldset>
-          <label className="block">
-            <span className="eyebrow">Design text</span>
-            <textarea
-              rows={2}
-              className="field resize-none"
-              value={f.design}
-              onChange={set("design")}
-            />
-          </label>
-          <div>
-            <span className="eyebrow">Category</span>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {cats.map((c) => (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={f.category === c ? "atelier" : "editorial"}
-                  key={c}
-                  aria-pressed={f.category === c}
-                  onClick={() => setF({ ...f, category: c })}
-                >
-                  {c}
-                </Button>
-              ))}
+          </section>
+          {err && (
+            <p role="alert" className="atelier-form-error text-sm text-destructive">
+              {err}
+            </p>
+          )}
+          <div className="atelier-form-actions">
+            <span className="eyebrow text-muted-foreground">CIAO D MILANO / ATELIER</span>
+            <div className="flex justify-end gap-3">
+              <Button type="button" variant="editorial" onClick={onClose} disabled={saving}>
+                Cancel
+              </Button>
+              <Button variant="atelier" disabled={saving}>
+                {saving ? (
+                  "Saving..."
+                ) : editingItem ? (
+                  "Update Item"
+                ) : (
+                  <>
+                    <Plus />
+                    Save Item
+                  </>
+                )}
+              </Button>
             </div>
           </div>
-        </div>
-        {err && <p className="mt-5 text-sm text-destructive">{err}</p>}
-        <div className="mt-7 flex justify-end gap-3">
-          <Button type="button" variant="editorial" onClick={onClose} disabled={saving}>
-            Cancel
-          </Button>
-          <Button variant="atelier" disabled={saving}>
-            {saving ? (
-              "Saving..."
-            ) : editingItem ? (
-              "Update Item"
-            ) : (
-              <>
-                <Plus />
-                Save Item
-              </>
-            )}
-          </Button>
         </div>
       </form>
     </div>

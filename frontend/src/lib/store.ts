@@ -44,6 +44,12 @@ export type OrderRecord = {
   createdAt?: string;
 };
 
+export type DashboardAnalytics = {
+  lineCounts: Record<Line, number>;
+  categoryCounts: Record<Line, { name: string; count: number }[]>;
+  ordersByMonth: { month: string; count: number }[];
+};
+
 export type CollectionKey = "customers" | "orders" | "men" | "women" | "accessories" | "items";
 
 type CollectionResponse<T> = {
@@ -136,6 +142,47 @@ export function useMongoCollection<T>(
 
 export function useItems() {
   return useMongoCollection<Item>("items");
+}
+
+export function useDashboardAnalytics() {
+  const [state, setState] = useState<{
+    data: DashboardAnalytics | null;
+    loading: boolean;
+    error: string | null;
+  }>({ data: null, loading: true, error: null });
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      setState((current) => ({ ...current, loading: true, error: null }));
+      try {
+        const response = await fetch("/api/dashboard/analytics");
+        const result = (await response.json()) as DashboardAnalytics & {
+          error?: string;
+        };
+        if (!response.ok) throw new Error(result.error ?? "Unable to load dashboard analytics.");
+        if (!cancelled) setState({ data: result, loading: false, error: null });
+      } catch (error) {
+        if (!cancelled) {
+          setState((current) => ({
+            ...current,
+            loading: false,
+            error: error instanceof Error ? error.message : "Unable to load dashboard analytics.",
+          }));
+        }
+      }
+    };
+
+    const refresh = () => void load();
+    void load();
+    window.addEventListener("cdm:data-changed", refresh);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("cdm:data-changed", refresh);
+    };
+  }, []);
+
+  return state;
 }
 
 export function notifyItemSaved() {

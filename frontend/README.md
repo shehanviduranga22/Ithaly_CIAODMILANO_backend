@@ -26,13 +26,15 @@ npm run dev
 
 Run `npm run dev` in this directory to start only the Vite frontend. To run the API,
 open a separate terminal in `../backend` and run `npm run dev`. Set `MONGODB_URI` and
-`PORT` in `backend/.env` (see
-[backend/.env.example](../backend/.env.example)); `.env` is ignored by Git. The API loads `backend/.env` first and falls back to `frontend/.env` for
-existing local setups. It stores new items in the `ciao_d_milano` database, in `men_items`,
+`PORT` in `backend/.env`; `.env` is ignored by Git. The API reads environment variables
+from `backend/.env` only, not `frontend/.env`. It stores new items in the
+`ciao_d_milano` database, in `men_items`,
 `women_items`, or `accessories_items` according to the selected collection.
 The dashboard reads customers from `account_details`, orders from `order_details`,
 and collection pieces from their matching item collections. Customer API responses
 omit password fields; customer order counts, cities, and spend are derived from orders.
+Dashboard charts aggregate inventory and item categories from the three item
+collections, and group orders by their recorded `createdAt` date for the last 12 months.
 
 Run the API by itself with `npm run server` from this directory, or with
 `npm run server --prefix ../backend`. When deploying, run `backend/server.js` as a
