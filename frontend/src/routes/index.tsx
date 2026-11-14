@@ -1,29 +1,27 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { apiFetch } from "@/lib/api";
 import { ArrowUpRight, Eye, EyeOff, LockKeyhole } from "lucide-react";
 import { AUTH_KEY } from "@/lib/store";
-import hero from "@/assets/slide2.jpg";
-import menswear from "@/assets/slide1.jpg";
-import accessories from "@/assets/slide3.jpg";
+import hero from "@/assets/home (1).png";
+import menswear from "@/assets/home (2).png";
+import accessories from "@/assets/home (3).png";
 
 const EDITIONS = [
   {
     image: hero,
     label: "Donna",
-    caption: "An expression of elegance",
     alt: "Women's fashion beneath the ornate arches of Milan's Galleria",
   },
   {
     image: menswear,
     label: "Uomo",
-    caption: "The art of tailoring",
     alt: "Men's tailoring on the streets of Milan",
   },
   {
     image: accessories,
     label: "Accessori",
-    caption: "The finishing touch",
     alt: "A still life of Italian fashion accessories",
   },
 ];
@@ -52,12 +50,22 @@ function Login() {
   const [err, setErr] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [edition, setEdition] = useState(0);
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email.trim().toLowerCase() === "shehanviduranga@gmail.com" && pw === "12345678") {
+    setErr("");
+    try {
+      const response = await apiFetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password: pw }),
+      });
+      const result = (await response.json()) as { error?: string };
+      if (!response.ok) throw new Error(result.error ?? "Unable to sign in.");
       localStorage.setItem(AUTH_KEY, "1");
       nav({ to: "/dashboard" });
-    } else setErr("Invalid email or password.");
+    } catch (error) {
+      setErr(error instanceof Error ? error.message : "Unable to sign in.");
+    }
   };
   return (
     <main className="login-page">
@@ -75,14 +83,8 @@ function Login() {
       </div>
 
       <section className="login-editorial" aria-label="Ciao D Milano editorial">
-        <header className="login-masthead">
-          <span className="eyebrow">Milano, Italia</span>
-          <span className="eyebrow">The private atelier</span>
-        </header>
         <div className="login-brand">
-          <p className="eyebrow login-brand-kicker">
-            <span /> Italian by nature.
-          </p>
+          <p className="eyebrow login-brand-kicker">Italian by nature.</p>
           <h1 className="font-display">
             CIAO D<br />
             <span>MILANO</span>
@@ -91,12 +93,6 @@ function Login() {
           <p className="login-manifesto font-display">L’eleganza è un’attitudine.</p>
         </div>
         <footer className="login-editorial-footer">
-          <div className="login-edition-caption">
-            <span className="eyebrow">
-              0{edition + 1} / {EDITIONS[edition]?.label}
-            </span>
-            <p className="font-display">{EDITIONS[edition]?.caption}</p>
-          </div>
           <div className="login-edition-controls" aria-label="Editorial photographs">
             {EDITIONS.map((scene, index) => (
               <Button
@@ -107,9 +103,7 @@ function Login() {
                 onClick={() => setEdition(index)}
                 aria-label={`Show ${scene.label} photograph`}
                 aria-pressed={edition === index}
-              >
-                0{index + 1}
-              </Button>
+              />
             ))}
           </div>
         </footer>
@@ -130,10 +124,7 @@ function Login() {
           <p className="login-form-subtitle">Your atelier awaits.</p>
           <div className="login-fields">
             <label className="block" htmlFor="login-email">
-              <span className="login-field-label">
-                <span>Email address</span>
-                <span>01</span>
-              </span>
+              <span className="login-field-label">Email address</span>
             </label>
             <input
               id="login-email"
@@ -149,10 +140,7 @@ function Login() {
               }}
             />
             <label className="login-password-label" htmlFor="login-password">
-              <span className="login-field-label">
-                <span>Password</span>
-                <span>02</span>
-              </span>
+              <span className="login-field-label">Password</span>
             </label>
             <div className="login-password-input">
               <input
@@ -194,10 +182,6 @@ function Login() {
             <LockKeyhole size={11} aria-hidden="true" /> Reserved for the Ciao D Milano team
           </p>
         </form>
-        <footer className="login-access-footer">
-          <span className="font-display">C/D/M</span>
-          <span className="eyebrow">Crafted in Milano.</span>
-        </footer>
       </section>
     </main>
   );

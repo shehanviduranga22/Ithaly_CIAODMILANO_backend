@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 import { createServer } from "node:http";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { MongoClient, ObjectId } from "mongodb";
 
 const backendDirectory = dirname(fileURLToPath(import.meta.url));
@@ -11,10 +12,20 @@ dotenv.config({
 
 const PORT = Number(process.env.PORT ?? 3001);
 const MONGODB_URI = process.env.MONGODB_URI;
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+const AUTH_SECRET = process.env.AUTH_SECRET;
+const FRONTEND_ORIGIN =
+  process.env.FRONTEND_ORIGIN ??
+  (process.env.NODE_ENV === "production"
+    ? "https://ithaly-ciaodmilano-backend.vercel.app"
+    : "http://localhost:5173");
 const DATABASE_NAME = "ciao_d_milano";
 const MAX_BODY_BYTES = 2_000_000;
 const ITEMS_PER_PAGE = 20;
 const MAX_PAGE = Math.floor(2_147_483_647 / ITEMS_PER_PAGE);
+const SESSION_DURATION_SECONDS = 8 * 60 * 60;
+const SESSION_COOKIE = "cdm-session";
 
 const COLLECTIONS = {
   men: {
@@ -59,8 +70,25 @@ if (!MONGODB_URI) {
   );
 }
 
+if (!ADMIN_EMAIL || !ADMIN_PASSWORD || ADMIN_PASSWORD.length < 12) {
+  throw new Error(
+    "Set ADMIN_EMAIL and an ADMIN_PASSWORD of at least 12 characters.",
+  );
+}
+
+if (!AUTH_SECRET || Buffer.byteLength(AUTH_SECRET) < 32) {
+  throw new Error("AUTH_SECRET must contain at least 32 bytes.");
+}
+
 if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535) {
   throw new Error("PORT must be a valid TCP port.");
+}
+
+let parsedFrontendOrigin;
+try {
+  parsedFrontendOrigin = new URL(FRONTEND_ORIGIN).origin;
+} catch {
+  throw new Error("FRONTEND_ORIGIN must be a valid absolute URL.");
 }
 
 let mongoClientPromise;
@@ -163,6 +191,82 @@ function sendJson(response, status, payload) {
   response.end(JSON.stringify(payload));
 }
 
+function safeEqual(left, right) {
+  const leftBuffer = Buffer.from(left);
+  const rightBuffer = Buffer.from(right);
+  return (
+    leftBuffer.length === rightBuffer.length &&
+    timingSafeEqual(leftBuffer, rightBuffer)
+  );
+}
+
+function createSessionToken() {
+  const expiresAt = Math.floor(Date.now() / 1000) + SESSION_DURATION_SECONDS;
+  const signature = createHmac("sha256", AUTH_SECRET)
+    .update(String(expiresAt))
+    .digest("base64url");
+  return `${expiresAt}.${signature}`;
+}
+
+function hasValidSession(request) {
+  const cookieHeader = request.headers.cookie ?? "";
+  const token = cookieHeader
+    .split(";")
+    .map((cookie) => cookie.trim())
+    .find((cookie) => cookie.startsWith(`${SESSION_COOKIE}=`))
+    ?.slice(SESSION_COOKIE.length + 1);
+  if (!token) return false;
+
+  const [expiresAt, signature, ...rest] = token.split(".");
+  if (
+    rest.length > 0 ||
+    !/^\d+$/.test(expiresAt ?? "") ||
+    Number(expiresAt) <= Math.floor(Date.now() / 1000)
+  ) {
+    return false;
+  }
+
+  const expectedSignature = createHmac("sha256", AUTH_SECRET)
+    .update(expiresAt)
+    .digest("base64url");
+  return safeEqual(signature ?? "", expectedSignature);
+}
+
+function setSessionCookie(response, token, maxAge) {
+  const secure = process.env.NODE_ENV === "production";
+  response.setHeader(
+    "Set-Cookie",
+    `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=${secure ? "None; Secure" : "Lax"}; Max-Age=${maxAge}`,
+  );
+}
+
+function setCorsHeaders(request, response) {
+  const origin = request.headers.origin;
+  let allowedOrigin = origin === parsedFrontendOrigin;
+  if (origin && !allowedOrigin && process.env.NODE_ENV !== "production") {
+    try {
+      const parsedOrigin = new URL(origin);
+      allowedOrigin =
+        parsedOrigin.protocol === "http:" &&
+        ["localhost", "127.0.0.1", "[::1]"].includes(parsedOrigin.hostname);
+    } catch {
+      allowedOrigin = false;
+    }
+  }
+
+  if (origin && !allowedOrigin) {
+    sendJson(response, 403, { error: "Origin is not allowed." });
+    return false;
+  }
+
+  if (origin) {
+    response.setHeader("Access-Control-Allow-Origin", origin);
+    response.setHeader("Access-Control-Allow-Credentials", "true");
+    response.setHeader("Vary", "Origin");
+  }
+  return true;
+}
+
 function getCollectionPageOptions(url, collectionConfig) {
   const pageValue = url.searchParams.get("page") ?? "1";
   const page = Number(pageValue);
@@ -210,8 +314,68 @@ function getCollectionPageOptions(url, collectionConfig) {
   return { page, filter, sort: sortOptions[sort] };
 }
 
-const server = createServer(async (request, response) => {
+export const handleRequest = async (request, response) => {
+  if (urlPathStartsWithApi(request.url) && !setCorsHeaders(request, response)) {
+    return;
+  }
+
   const url = new URL(request.url ?? "/", "http://localhost");
+  if (url.pathname.startsWith("/api/") && request.method === "OPTIONS") {
+    response.writeHead(204, {
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Max-Age": "600",
+    });
+    response.end();
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/auth/login") {
+    try {
+      const contentType = request.headers["content-type"] ?? "";
+      if (!contentType.includes("application/json")) {
+        throw new HttpError(415, "Content-Type must be application/json.");
+      }
+      const body = await readJsonBody(request);
+      if (
+        typeof body.email !== "string" ||
+        body.email.length > 254 ||
+        typeof body.password !== "string" ||
+        body.password.length > 200 ||
+        body.email.trim().toLowerCase() !== ADMIN_EMAIL ||
+        !safeEqual(body.password, ADMIN_PASSWORD)
+      ) {
+        throw new HttpError(401, "Invalid email or password.");
+      }
+
+      setSessionCookie(
+        response,
+        createSessionToken(),
+        SESSION_DURATION_SECONDS,
+      );
+      sendJson(response, 200, { authenticated: true });
+    } catch (error) {
+      if (error instanceof HttpError) {
+        sendJson(response, error.status, { error: error.message });
+        return;
+      }
+      console.error("Failed to authenticate admin:", error);
+      sendJson(response, 500, { error: "Unable to sign in." });
+    }
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/auth/logout") {
+    setSessionCookie(response, "", 0);
+    sendJson(response, 200, { authenticated: false });
+    return;
+  }
+
+  if (url.pathname.startsWith("/api/") && !hasValidSession(request)) {
+    sendJson(response, 401, { error: "Authentication required." });
+    return;
+  }
+
   const collectionKey = url.pathname.match(
     /^\/api\/collections\/([a-z]+)$/,
   )?.[1];
@@ -387,6 +551,7 @@ const server = createServer(async (request, response) => {
                     billingAddress: 1,
                     shippingAddress: 1,
                     purchasedItems: 1,
+                    items: 1,
                     totalAmount: 1,
                     currency: 1,
                     orderNumber: 1,
@@ -619,17 +784,27 @@ const server = createServer(async (request, response) => {
       error: "Unable to save item. Check the backend and database connection.",
     });
   }
-});
+};
 
-server.listen(PORT, "0.0.0.0", () => {
-  console.log(`Item API listening on port ${PORT}`);
-});
+function urlPathStartsWithApi(requestUrl) {
+  return (requestUrl ?? "/").split("?")[0]?.startsWith("/api/") ?? false;
+}
 
-for (const signal of ["SIGINT", "SIGTERM"]) {
-  process.on(signal, () => {
-    server.close(async () => {
-      if (mongoClientPromise) (await mongoClientPromise).close();
-      process.exit(0);
-    });
+if (
+  process.argv[1] &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
+  const server = createServer(handleRequest);
+  server.listen(PORT, "0.0.0.0", () => {
+    console.log(`Item API listening on port ${PORT}`);
   });
+
+  for (const signal of ["SIGINT", "SIGTERM"]) {
+    process.on(signal, () => {
+      server.close(async () => {
+        if (mongoClientPromise) (await mongoClientPromise).close();
+        process.exit(0);
+      });
+    });
+  }
 }

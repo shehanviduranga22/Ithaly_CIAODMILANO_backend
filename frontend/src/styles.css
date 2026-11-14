@@ -124,7 +124,7 @@
 }
 .login-photography {
   position: absolute;
-  inset: 0;
+  inset: 0 max(360px, 38%) 0 0;
   z-index: -1;
   overflow: hidden;
 }
@@ -133,8 +133,8 @@
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: 30% center;
+  object-fit: contain;
+  object-position: center;
   opacity: 0;
   transition: opacity 0.7s ease;
 }
@@ -144,7 +144,9 @@
 .login-photo-shade {
   position: absolute;
   inset: 0;
-  background: var(--login-photo-shade);
+  background:
+    linear-gradient(90deg, color-mix(in oklab, var(--ink) 55%, transparent), transparent 42%),
+    var(--login-photo-shade);
 }
 .login-editorial {
   min-width: 0;
@@ -155,29 +157,11 @@
   color: var(--ink-foreground);
   min-height: 674px;
 }
-.login-masthead {
-  display: flex;
-  justify-content: space-between;
-  gap: 20px;
-  border-bottom: 1px solid color-mix(in oklab, var(--ink-foreground) 35%, transparent);
-  padding-bottom: 20px;
-}
-.login-masthead .eyebrow {
-  font-size: 9px;
-}
 .login-brand {
   padding-block: 68px 84px;
 }
 .login-brand-kicker {
-  display: flex;
-  align-items: center;
-  gap: 10px;
   font-size: 10px;
-}
-.login-brand-kicker > span {
-  width: 24px;
-  height: 1px;
-  background: var(--accent);
 }
 .login-brand h1 {
   font-size: 88px;
@@ -197,44 +181,47 @@
 }
 .login-editorial-footer {
   display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 20px;
-  border-top: 1px solid color-mix(in oklab, var(--ink-foreground) 35%, transparent);
-  padding-top: 21px;
-}
-.login-edition-caption .eyebrow {
-  opacity: 0.8;
-}
-.login-edition-caption p {
-  font-size: 20px;
-  margin-top: 8px;
+  justify-content: flex-end;
 }
 .login-edition-controls {
   display: flex;
   gap: 5px;
 }
 .login-edition-button {
-  border-radius: 0;
-  width: 34px;
-  height: 34px;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
   padding: 0;
   color: var(--ink-foreground);
-  font-size: 10px;
-  border-bottom: 1px solid transparent;
+  font-size: 0;
   opacity: 0.65;
 }
+.login-edition-button::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  transition:
+    width 0.25s ease,
+    background-color 0.25s ease;
+}
 .login-edition-button:hover {
-  background: color-mix(in oklab, var(--ink-foreground) 14%, transparent);
+  background: transparent;
   color: var(--ink-foreground);
   opacity: 1;
 }
 .login-edition-selected {
-  border-color: var(--ink-foreground);
   opacity: 1;
 }
+.login-edition-selected::after {
+  width: 18px;
+  background: var(--accent);
+}
 .login-access {
-  background: var(--background);
+  background:
+    radial-gradient(ellipse at 100% 0, color-mix(in oklab, var(--accent) 18%, transparent), transparent 45%),
+    var(--background);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -245,12 +232,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--border);
   color: var(--muted-foreground);
 }
 .login-access-header .eyebrow {
-  font-size: 9px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
 }
 .login-form {
   width: 100%;
@@ -263,31 +249,49 @@
   line-height: 1.05;
   margin-top: 18px;
   font-weight: 400;
+  letter-spacing: -0.035em;
 }
 .login-form h2 em {
   font-weight: 400;
 }
 .login-form-subtitle {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted-foreground);
   margin-top: 15px;
+}
+.login-form > .eyebrow:first-child {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  letter-spacing: 0.12em;
+}
+.login-form > .eyebrow:first-child::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
 }
 .login-fields {
   margin-top: 36px;
 }
 .login-field-label {
-  display: flex;
-  justify-content: space-between;
-  font-size: 10px;
-}
-.login-field-label > span:last-child {
-  color: var(--muted-foreground);
-  font-size: 9px;
+  display: block;
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
 }
 .login-fields input {
-  font-size: 12px;
-  padding-block: 13px;
-  border-radius: 0;
+  font-size: 13px;
+  padding: 14px;
+  border-radius: 3px;
+  border-bottom: 0;
+  background: var(--muted);
+  transition: background-color 0.2s ease;
+}
+.login-fields input:focus {
+  background: color-mix(in oklab, var(--accent) 24%, var(--background));
 }
 .login-fields input::placeholder {
   color: var(--muted-foreground);
@@ -305,8 +309,9 @@
 }
 .login-password-toggle {
   position: absolute;
-  right: 0;
-  top: 4px;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
   color: var(--muted-foreground);
 }
 .login-submit {
@@ -322,23 +327,8 @@
   justify-content: center;
   gap: 7px;
   color: var(--muted-foreground);
-  font-size: 9px;
+  font-size: 10px;
   margin-top: 17px;
-}
-.login-access-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-top: 1px solid var(--border);
-  padding-top: 20px;
-  gap: 15px;
-}
-.login-access-footer > .font-display {
-  font-size: 19px;
-}
-.login-access-footer .eyebrow {
-  color: var(--muted-foreground);
-  font-size: 8px;
 }
 @media (min-width: 1400px) {
   .login-editorial {
@@ -361,26 +351,21 @@
   .login-access {
     padding-inline: 30px;
   }
-  .login-edition-caption p {
-    font-size: 17px;
-  }
 }
 @media (max-width: 700px) {
   .login-page {
     grid-template-columns: 1fr;
   }
   .login-photography {
+    inset: 0;
     height: 350px;
   }
   .login-photo {
-    object-position: center 38%;
+    object-fit: cover;
   }
   .login-editorial {
     min-height: 350px;
     padding: 23px 24px;
-  }
-  .login-masthead {
-    padding-bottom: 14px;
   }
   .login-brand {
     padding-block: 27px;
@@ -397,14 +382,7 @@
     margin-top: 13px;
   }
   .login-editorial-footer {
-    padding-top: 14px;
-    gap: 10px;
-  }
-  .login-edition-caption p {
-    display: none;
-  }
-  .login-edition-button {
-    height: 28px;
+    justify-content: flex-end;
   }
   .login-access {
     padding: 25px 28px;

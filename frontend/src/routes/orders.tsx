@@ -28,6 +28,7 @@ function OrdersPage() {
   const orders = useMongoCollection<OrderRecord>("orders");
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const selectedOrder = orders.items.find((order) => order.id === selectedOrderId);
+  const selectedOrderItems = selectedOrder?.purchasedItems ?? selectedOrder?.items;
   const additionalOrderDetails = selectedOrder
     ? Object.fromEntries(
         Object.entries(selectedOrder).filter(
@@ -39,6 +40,7 @@ function OrdersPage() {
               "billingAddress",
               "shippingAddress",
               "purchasedItems",
+              "items",
               "totalAmount",
               "currency",
               "status",
@@ -93,7 +95,7 @@ function OrdersPage() {
           return [
             <span className="text-muted-foreground">{order.id}</span>,
             customer,
-            <PurchasedItemsCell items={order.purchasedItems} />,
+            <PurchasedItemsCell items={order.purchasedItems ?? order.items} />,
             eur(order.totalAmount ?? 0),
             <span
               className={`order-status ${status === "Delivered" ? "status-complete" : status === "Cancelled" ? "status-cancelled" : "status-pending"}`}
@@ -173,9 +175,9 @@ function OrdersPage() {
                 )}
               <section className="border-t pt-5">
                 <h3 className="eyebrow text-muted-foreground">Items ordered</h3>
-                {selectedOrder.purchasedItems?.length ? (
+                {selectedOrderItems?.length ? (
                   <ul className="mt-3 divide-y">
-                    {selectedOrder.purchasedItems.map((item, index) => (
+                    {selectedOrderItems.map((item, index) => (
                       <li key={`${item.name ?? "item"}-${index}`} className="py-3 first:pt-0">
                         <OrderDetailValue value={item} />
                       </li>

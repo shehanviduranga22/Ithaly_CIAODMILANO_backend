@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { apiFetch } from "@/lib/api";
 import s1 from "@/assets/slide1.jpg";
 import s2 from "@/assets/slide2.jpg";
 import s3 from "@/assets/slide3.jpg";
@@ -81,6 +82,7 @@ const NAV = [
 export function Shell({ title, children }: { title: string; children: ReactNode }) {
   const nav = useNavigate();
   const [ok, setOk] = useState(false);
+  const [authError, setAuthError] = useState("");
   useEffect(() => {
     if (!isAuthed()) nav({ to: "/", replace: true });
     else setOk(true);
@@ -113,15 +115,29 @@ export function Shell({ title, children }: { title: string; children: ReactNode 
           <p className="font-display text-lg italic">Milano, always.</p>
           <Button
             variant="ghost"
-            onClick={() => {
-              localStorage.removeItem(AUTH_KEY);
-              nav({ to: "/", replace: true });
+            onClick={async () => {
+              setAuthError("");
+              try {
+                const response = await apiFetch("/api/auth/logout", {
+                  method: "POST",
+                });
+                if (!response.ok) throw new Error("Unable to sign out.");
+                localStorage.removeItem(AUTH_KEY);
+                nav({ to: "/", replace: true });
+              } catch {
+                setAuthError("Unable to sign out. Please try again.");
+              }
             }}
             className="mt-4 justify-start px-0 text-xs opacity-65 hover:opacity-100"
           >
             <LogOut size={14} />
             Sign out
           </Button>
+          {authError && (
+            <p role="alert" className="mt-2 text-xs text-destructive">
+              {authError}
+            </p>
+          )}
         </div>
       </aside>
       <main className="admin-main min-w-0">
@@ -414,7 +430,7 @@ export function AddItemDialog({
         ...(editingItem ? { id: editingItem.id } : {}),
         ...(imageChanged ? { image: image || null } : image ? { image } : {}),
       };
-      const response = await fetch(
+      const response = await apiFetch(
         editingItem ? `/api/items/${line}/${editingItem.id}` : "/api/items",
         {
           method: editingItem ? "PUT" : "POST",

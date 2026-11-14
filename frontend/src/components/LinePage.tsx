@@ -10,6 +10,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { apiFetch } from "@/lib/api";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -76,7 +77,7 @@ export function LinePage({ line, title }: { line: Line; title: string }) {
     setDeletingId(item.id);
     setActionError("");
     try {
-      const response = await fetch(`/api/items/${line}/${item.id}`, { method: "DELETE" });
+      const response = await apiFetch(`/api/items/${line}/${item.id}`, { method: "DELETE" });
       const result = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(result.error ?? "Unable to delete item.");
       if (selected?.id === item.id) setSelected(null);

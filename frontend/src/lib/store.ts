@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api";
 
 export type Line = "men" | "women" | "accessories";
 export type Item = {
@@ -37,6 +38,7 @@ export type OrderRecord = {
     city?: string;
   };
   purchasedItems?: (Record<string, unknown> & { name?: string; quantity?: number })[];
+  items?: (Record<string, unknown> & { name?: string; quantity?: number })[];
   totalAmount?: number;
   currency?: string;
   orderNumber?: string;
@@ -111,7 +113,7 @@ export function useMongoCollection<T>(
         if (search) query.set("search", search);
         if (sort) query.set("sort", sort);
         const queryString = query.toString();
-        const response = await fetch(
+        const response = await apiFetch(
           `/api/collections/${key}${queryString ? `?${queryString}` : ""}`,
         );
         const result = (await response.json()) as CollectionResponse<T> & { error?: string };
@@ -156,7 +158,7 @@ export function useDashboardAnalytics() {
     const load = async () => {
       setState((current) => ({ ...current, loading: true, error: null }));
       try {
-        const response = await fetch("/api/dashboard/analytics");
+        const response = await apiFetch("/api/dashboard/analytics");
         const result = (await response.json()) as DashboardAnalytics & {
           error?: string;
         };
