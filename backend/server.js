@@ -16,12 +16,10 @@ const ADMIN_EMAIL = process.env.ADMIN_EMAIL?.trim().toLowerCase();
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const AUTH_SECRET = process.env.AUTH_SECRET;
 const FRONTEND_ORIGIN =
-  process.env.FRONTEND_ORIGIN?.trim() ||
-  (process.env.NODE_ENV === "production" || process.env.VERCEL === "1"
+  process.env.FRONTEND_ORIGIN ??
+  (process.env.NODE_ENV === "production"
     ? "https://ithaly-ciaodmilano-backend.vercel.app"
     : "http://localhost:5173");
-const IS_PRODUCTION =
-  process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
 const DATABASE_NAME = "ciao_d_milano";
 const MAX_BODY_BYTES = 2_000_000;
 const ITEMS_PER_PAGE = 20;
@@ -235,16 +233,17 @@ function hasValidSession(request) {
 }
 
 function setSessionCookie(response, token, maxAge) {
+  const secure = process.env.NODE_ENV === "production";
   response.setHeader(
     "Set-Cookie",
-    `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=${IS_PRODUCTION ? "None; Secure" : "Lax"}; Max-Age=${maxAge}`,
+    `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=${secure ? "None; Secure" : "Lax"}; Max-Age=${maxAge}`,
   );
 }
 
 function setCorsHeaders(request, response) {
   const origin = request.headers.origin;
   let allowedOrigin = origin === parsedFrontendOrigin;
-  if (origin && !allowedOrigin && !IS_PRODUCTION) {
+  if (origin && !allowedOrigin && process.env.NODE_ENV !== "production") {
     try {
       const parsedOrigin = new URL(origin);
       allowedOrigin =
