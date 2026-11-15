@@ -24,8 +24,9 @@ npm install --prefix ../backend
 npm run dev
 ```
 
-Run `npm run dev` in this directory to start only the Vite frontend. To run the API,
-open a separate terminal in `../backend` and run `npm run dev`. Set `MONGODB_URI` and
+Run `npm run dev` in this directory to start the Vite frontend. Its `/api` requests
+are proxied to the deployed backend. To run the API locally instead, open a separate
+terminal in `../backend` and run `npm run dev`. Set `MONGODB_URI` and
 `PORT` in `backend/.env`; `.env` is ignored by Git. The API reads environment variables
 from `backend/.env` only, not `frontend/.env`. It stores new items in the
 `ciao_d_milano` database, in `men_items`,
@@ -37,5 +38,5 @@ Dashboard charts aggregate inventory and item categories from the three item
 collections, and group orders by their recorded `createdAt` date for the last 12 months.
 
 Run the API by itself with `npm run server` from this directory, or with
-`npm run server --prefix ../backend`. When deploying, run `backend/server.js` as a
-Node service and route `/api` requests to it; the Vite proxy is for local development.
+`npm run server --prefix ../backend`. The deployed frontend calls the backend at
+`https://ithaly-ciaodmilano-backend-ehee.vercel.app`.

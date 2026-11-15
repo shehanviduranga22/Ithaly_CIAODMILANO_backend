@@ -10,7 +10,15 @@ export default defineConfig({
   vite: {
     server: {
       proxy: {
-        "/api": "http://127.0.0.1:3001",
+        "/api": {
+          target: "https://ithaly-ciaodmilano-backend-ehee.vercel.app",
+          changeOrigin: true,
+          configure: (proxy) => {
+            proxy.on("proxyReq", (proxyRequest) => {
+              proxyRequest.removeHeader("origin");
+            });
+          },
+        },
       },
     },
   },

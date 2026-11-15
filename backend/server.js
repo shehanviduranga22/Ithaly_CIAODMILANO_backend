@@ -17,9 +17,7 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const AUTH_SECRET = process.env.AUTH_SECRET;
 const FRONTEND_ORIGIN =
   process.env.FRONTEND_ORIGIN ??
-  (process.env.NODE_ENV === "production"
-    ? "https://ithaly-ciaodmilano-backend.vercel.app"
-    : "http://localhost:5173");
+  "https://ithaly-ciaodmilano-backend.vercel.app";
 const DATABASE_NAME = "ciao_d_milano";
 const MAX_BODY_BYTES = 2_000_000;
 const ITEMS_PER_PAGE = 20;
@@ -319,7 +317,10 @@ export const handleRequest = async (request, response) => {
     return;
   }
 
-  const url = new URL(request.url ?? "/", "http://localhost");
+  const url = new URL(
+    request.url ?? "/",
+    "https://ithaly-ciaodmilano-backend-ehee.vercel.app",
+  );
   if (url.pathname.startsWith("/api/") && request.method === "OPTIONS") {
     response.writeHead(204, {
       "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
@@ -808,3 +809,5 @@ if (
     });
   }
 }
+
+export default handleRequest;
