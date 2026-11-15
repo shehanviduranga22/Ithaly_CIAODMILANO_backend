@@ -352,19 +352,19 @@
     padding-inline: 30px;
   }
 }
-@media (max-width: 700px) {
+@media (max-width: 760px) {
   .login-page {
     grid-template-columns: 1fr;
   }
   .login-photography {
     inset: 0;
-    height: 350px;
+    height: clamp(310px, 85vw, 350px);
   }
   .login-photo {
     object-fit: cover;
   }
   .login-editorial {
-    min-height: 350px;
+    min-height: clamp(310px, 85vw, 350px);
     padding: 23px 24px;
   }
   .login-brand {
